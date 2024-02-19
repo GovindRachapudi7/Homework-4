@@ -1,0 +1,335 @@
+---
+title: "Homework 4 (SDS 315)"
+author: "Govind Rachapudi: gr25925"
+date: ""
+output: html_document
+---
+
+# Problem 1
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(mosaic)
+gas <- read.csv("gasprices.csv")
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+general_comp <- gas %>% 
+  group_by(Competitors) %>% 
+  select(Name, Price, Competitors) %>% 
+  summarize(avp_price = mean(Price))
+
+#conf_avg_price <- t.test(Price ~ Competitors, data = gas)$conf.int
+
+#head(general_comp)
+ggplot(general_comp, aes(x = general_comp$Competitors, y = general_comp$avp_price, fill = Competitors))+
+  geom_bar(stat = "identity")+
+  theme_bw()+
+  labs(title = "Comparison between Gas Prices and Gas station Competition.")+
+  labs(x = "Competition", y = "Average Price Per gallon")
+```
+
+Claim: Gas stations charge more if they lack direct competition in sight.
+
+Evidence: Cost of Gas with direct competition on Average: \$1.85 per Gallon. Cost of Gas with no competition on average: \$1.88 per Gallon. However, on a 95% confidence interval, gas prices can have a difference of .008 and .055.
+
+Conclusion: All in all, the assumption that Gas stations charge more if they lack direct competition in sight is true because they charge .03 cents more than gas stations that have a lot of competition. In conclusion, the difference in price between gas stations that have or don't have any competition is somewhere in between .008 and .055, with 95% confidence.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+income <- gas %>% 
+  group_by(Income) %>% 
+  select(Price, Income)
+
+#cor(income$Income, income$Price)
+income_thousand <- income$Income/1000
+ggplot(income, aes(x = income_thousand, y = Price))+
+  geom_point()+
+  geom_smooth(method = lm, color = "red", fill = "#69b3a2", se=TRUE)+
+  theme_bw()+
+  labs(title = "Gas Prices based on Income of Area.", x = "Median Household Income", y = "Gas Prices Per Gallon.")
+```
+
+Claim: The richer the area, the higher the gas prices.
+
+Evidence: There is a weak positive correlation between the income of the area and average price per gallon (.39615). The scatter plot and linear regression line shows that there is indeed a trend between both variables but the correlation implies that there is a moderate connection.
+
+Conclusion: In conclusion, The claim that the richer the area the higher the gas prices are is somewhat correct, because there is a moderate correlation between area income and average gas prices. However, it is not strongly correlated enough to the point where someone can concretely make that claim.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+stoplights <- gas %>% 
+  group_by(Stoplight) %>% 
+  select(Price, Stoplight) %>% 
+  summarize(average_stoplight_price = mean(Price))
+
+#head(stoplights)
+
+conf_stoplight <- t.test(Price ~ Stoplight, data = gas)$conf.int
+#print(conf_stoplight)
+
+ggplot(stoplights, aes(x = stoplights$Stoplight, y = stoplights$average_stoplight_price, fill = Stoplight))+
+  geom_bar(stat = "identity")+
+  labs(title = "Are Gas Prices higher at gas stations near Stoplights?")+
+  labs(x = "Stoplights", y = "Average Price Per gallon")+
+  theme_dark()
+
+```
+
+Claim: Gas stations at Stoplights charge more.
+
+Evidence: The data shows that there is practically no difference in gas prices between a gas station's proximity to a stop light.
+
+Conclusion: The theory that gas stations at stoplights charge more is differently incorrect because both charge the same amount of money. The difference in price between gas stations near and not near a stoplight is somewhere between \$-.0318 and \$.0385. This data can conclude that this claim is incorrect because there is not much of a difference between the gas prices.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+highway <- gas %>% 
+  group_by(Highway) %>% 
+  select(Price, Highway) %>% 
+  summarize(avg_highway_price = mean(Price))
+
+#head(highway)
+
+highway_interval <- t.test(Price ~ Highway, data = gas)$conf.int
+#print(highway_interval)
+
+ggplot(highway, aes(x = Highway, y = avg_highway_price, fill = Highway))+
+  geom_bar(stat = "identity")+
+  theme_bw()+
+  labs(title = "Average Gas Prices with and without highway access")+
+  labs(x = "Highway Access", y = "Average Price per Gallon")
+```
+
+Claim: Gas Stations with direct highway access charge more.
+
+Evidence: The claim seems to be correct since the difference in price between gas stations with or without highway access is somewhere between -0.0833 and -0.0080, with 95% confidence. Gas stations with highway access are charging \$1.9 per gallon as compared to the \$1.85 per gallon that gas stations without highway access are charging.
+
+Conclusion: All in all, the claim that gas stations with direct highway access charge more is correct. This is because the difference in price between gas stations with or without highway access is somewhere between -\$0.08 and -#0.0080, with 95% confidence. In conclusion, this information indicates that Gas Stations with direct highway access charge more compared to gas stations without highway access.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+brands <- gas %>% 
+  group_by(Brand) %>% 
+  select(Brand, Price) %>% 
+  summarize(price_per_brand = mean(Price))
+
+shell <- gas %>% 
+  group_by(Brand) %>% 
+  select(Brand, Price) %>% 
+  filter(Brand == "Shell") %>% 
+  summarize(shell_price = mean(Price))
+
+others <- gas %>% 
+  group_by(Brand) %>% 
+  select(Brand, Price) %>% 
+  filter(Brand != "Shell") %>% 
+  summarize(others_price = mean(Price))
+
+other_prices_mean <- mean(others$others_price)
+shell_price <- mean(shell$shell_price)
+
+brands_df <- data.frame(
+  Brand = c("Shell", "Others"),
+  Price = c(shell_price, other_prices_mean)
+)
+
+comparing_brands <- gas %>% 
+  mutate(Shell = ifelse(Brand == "Other" | Brand == "ExxonMobil" | Brand == "Chevron-Texaco", yes = "No", no = "Yes"))
+
+brand_interval <- t.test(Price~Shell, data = comparing_brands)$conf.int
+#brand_interval
+
+
+ggplot(brands_df, aes(x = brands_df$Brand, y = brands_df$Price, fill = Brand))+
+  geom_bar(stat = "identity")+
+  geom_text(aes(label = round(Price, 2)), vjust = -0.5, size = 3) + 
+  theme_bw()+
+  labs(title = "Gas Prices for Shell vs. Other Brands on Average", x = "Brand", y = "Average Price of Gas")
+```
+
+Claim: Shell Charges more than all other non-Shell Brands.
+
+Evidence: The difference in price between Shell and other brands is somewhere between -0.066 and 0.0112, with 95% confidence. According to my data there is only a 0.2 cent difference between shell and the rest of the brands but that is enough impute that shell is charging more than all other brands on average.
+
+Conclusion: According to my analysis, shell does indeed charge more than all other non-shell brands. I came to this conclusion by finding difference in price between shell and other brands which is somewhere between -0.066 and 0.0112, with 95% confidence.
+
+# Problem 2
+
+### Part A
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+sclass <- read.csv("sclass.csv")
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+part_a <- sclass %>% 
+  filter(year == 2011 & trim == "63 AMG")
+# bootstrap mean mileage of this data frame
+boot_amg <- do(10000)*mean(~mileage, data=mosaic::resample(part_a))
+
+ggplot(boot_amg)+
+  geom_histogram(aes(x=mean), fill = "indianred", color = "black", alpha = 0.9)+
+  theme_bw()
+
+standard_dev <- sd(~mean, data = boot_amg)
+standard_dev <- round(standard_dev, digits=2)
+#standard_dev
+#confint(boot_amg, level = 0.95)
+```
+
+The Bootstrap interval for the average mileage of 2011 S-Class 63 AMGs is approximately between 26,237.81 and 31,817.54 miles per gallon, with 95% confidence. The standard deviation of this data is 1433.04.
+
+### Part B
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+black_550s <- sclass %>% 
+  filter(year == 2014 & trim == "550") %>% 
+  mutate(isBlack = color == "Black")
+
+#prop(~isBlack, data=black_550s)
+boot_black550 <- do(10000)*prop(~isBlack, data=mosaic::resample(black_550s))
+
+ggplot(boot_black550)+
+  geom_histogram(aes(x=prop_TRUE), fill = "coral", color = "black", alpha = 0.9)+
+  theme_bw()+
+  labs(title = "Bootstrap Estimation of The Proportion of Black 2014 550's", x = "Proportion", y = "Count")
+
+#confint(boot_black550, level = 0.95)
+
+
+```
+
+The Bootstrap interval for the average proportion of 2014 S-Class Black 550s is approximately between 41.7 and 45.3 percent of all 2014 S-Class 550s, with 95% confidence.
+
+# Problem 3
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+nbc <- read.csv("nbc_pilotsurvey.csv")
+```
+
+### Part A
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ed_earl <- nbc %>% 
+  group_by(Show) %>% 
+  filter(Show == "Living with Ed" | Show == "My Name is Earl") %>% 
+  select(Viewer, Show, Q1_Happy) %>% 
+  summarize(Happiness = mean(Q1_Happy))
+
+new_ed <- nbc %>% 
+  group_by(Show) %>% 
+  filter(Show == "Living with Ed" | Show == "My Name is Earl") %>% 
+  select(Viewer, Show, Q1_Happy)
+
+ggplot(ed_earl, aes(x = Show, y = Happiness, fill = Show))+
+  geom_bar(stat = "identity")+
+  geom_text(aes(label = round(Happiness, 2)), vjust = -0.5, size = 3)  
+
+#mean(Q1_Happy ~ Show, data = new_ed)
+boot_happiness = do(10000)*diffmean(Q1_Happy~Show, data=mosaic::resample(new_ed))
+
+ggplot(boot_happiness)+
+  geom_histogram(aes(x=diffmean), fill = "cyan3", color = "black", alpha = 0.8)+ 
+  labs(x = "Mean Difference", y = "Count")
+
+#confint(boot_happiness, level = 0.95)
+  
+```
+
+Question: What is the difference in mean viewer response to the Q1_Happy question for the shows Living with Ed and My Name is Earl?
+
+Approach: To calculate the difference in mean viewer response I grouped the dataset by Show and filtered the dataset with Living with Ed and My Name is Earl. I also used the summarize function to simply find the mean of the Q1_Happy response for both of the shows. I also used the diffmean bootstrapping method to get an accurate representation of the difference of the response in between both of the shows. Lastly I used the confint function which means the confidence interval of the difference on a 95% confidence interval.
+
+Results: The difference in Q1 Happy between both of the shows was between -0.393 and .108, on an 95% confidence interval. Living with Ed consistently produces a higher mean Q1_Happy response among viewers compared to My Name is Earl. The Mean Q1_happy response for living with Ed is 3.93 while My name is Earl has a response of 3.78.
+
+Conclusion: According to my analysis, Living with Ed makes people feel happier because it consistently has a higher mean happiness rating than compared to My Name is Earl. In conclusion, the difference in mean Q1_Happy response from viewers between the shows Living with Ed and My Name Is Earl is somewhere between -0.393 and .108, with 95% confidence.
+
+#### Part B
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+loser_apprentice <- nbc %>% 
+  group_by(Show) %>% 
+  filter(Show == "The Biggest Loser" | Show == "The Apprentice: Los Angeles") %>% 
+  select(Viewer, Show, Q1_Annoyed)
+
+annoying_ratings <- loser_apprentice %>% 
+  summarize(Annoying = mean(Q1_Annoyed))
+
+#annoying_ratings
+
+boot_annoyed = do(10000)*diffmean(Q1_Annoyed~Show, data=mosaic::resample(loser_apprentice))
+
+ggplot(boot_annoyed)+
+  geom_histogram(aes(x=diffmean), fill = "gray", color = "black", alpha = 0.8)+ 
+  labs(x = "Mean Difference", y = "Count")
+
+#confint(boot_annoyed, level = 0.95)
+
+```
+
+Question: What is the difference in mean viewer response to the Q1_Annoyed question for the shows The Biggest Loser and The Apprentice: Los Angeles.
+
+Approach: To calculate the difference in mean viewer response I grouped the dataset by Show and filtered the dataset to find the results for the shows The Biggest Loser and The Apprentice: Los Angeles. I also used the summarize function to simply find the mean of the Q1_Annoyed response for both of the shows. I also used the diffmean bootstrapping method to get an accurate representation of the difference of the response in between both of the shows. Lastly I used the confint function which finds the confidence interval of the difference of the respective shows mean Q1_annoyed ratings on a 95% confidence interval.
+
+Results: The difference in the mean Q1 Annoyed rating between both of the shows was between -0.524 and -0.022, on an 95% confidence interval. The Apprentice consistently produces a higher mean Q1_Annoyed response among viewers compared to The Biggest Loser. The Mean Q1_Annoyed response for The Apprentice is 2.31 while The Biggest Loser has a response of 2.04.
+
+Conclusion: According to my analysis, The Apprentice makes people feel more annoyed because it consistently has a higher mean Q1_annoyed rating than compared to The Biggest Loser. In conclusion, the difference in mean Q1_Annoyed response from viewers between the shows The Apprentice and The Biggest Loser is somewhere between -0.524 and -0.022, with a 95% confidence interval.
+
+#### Part C
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+dancing <- nbc %>% 
+  filter(Show == "Dancing with the Stars") %>% 
+  mutate(VeryConfusing = Q2_Confusing >= 4) %>% 
+  select(Show, Q2_Confusing, VeryConfusing)
+
+#prop(~VeryConfusing, data=dancing)
+boot_dancing = do(10000)*prop(~VeryConfusing, data=mosaic::resample(dancing))
+
+
+ggplot(boot_dancing)+
+geom_histogram(aes(x=prop_TRUE), fill = "deepskyblue4", color = "black", alpha = 0.8)+
+labs(x = "Average Proportions of Q2_Confusing Ratings over 4")
+
+#confint(boot_dancing, level = 0.95)
+```
+
+Question: What proportion of American TV watchers would we expect to give a response of 4 or greater to the "Q2_Confusing" question
+
+Approach: To conduct analysis for this question filtered the dataset with the names of the shows and then selected the show, q2_selected and VeryConfusing columns. The very_confusing variable was created when I used the mutate function to find how many times the show was rated a 4 or higher on how confusing it was. After I filtered the dataset, I proceeded to use the prop function to find the proportion of Q2_confusing ratings that were greater than or equal to 4. Next, I bootstrapped the proportion to a large sample size of 10,000. Lastly, after using ggplot to create a visualization of the proportion, I used the confint function to find the proportion interval on a 95% level of confidence.
+
+Results: The proportion that I ran came out to be a pretty low proportion of 7.73%. The proportion interval for the Q2_confused ratings for both shows was in between 3.9% and 1.2%, on a 95% confidence interval.
+
+Conclusion: According to my analysis, 6.1% of Americans would rate Dancing with the Stars a 4 or higher on the Q2_confused scale. This is a relatively low number considering that lots of Americans watch the show. In conclusion, most people don't believe that dancing with the stars is much a confusing show!
+
+# Problem 4: Ebay
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ebay <- read.csv("ebay.csv")
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ebay <- ebay %>% 
+  mutate(control = adwords_pause == 0) 
+
+#mean(rev_ratio ~ control, data=ebay)
+
+#diffmean(rev_ratio ~ control, data=ebay)
+
+boot_revenue = do(10000)*diffmean(rev_ratio ~ control, data=mosaic::resample(ebay))
+
+#confint(boot_revenue, level = 0.95)
+#7.69% difference between control and treatment revenue, on a 95% confidence interval. 
+
+#.8966 revenue ratio for treatment group, .9489 revenue ratio for control group
+
+ggplot(boot_revenue)+
+geom_histogram(aes(x = diffmean), fill = "cornflowerblue", color = "black", alpha = 0.8)+
+  theme_bw()+
+  labs(x = "Average Difference in Control and Treatment groups")
+```
+
+Question: Determine if these is a difference in the revenue ratio between the control group and the treatment group of Google advertising.
+
+Approach: I used mutate to create a variable called control to determine whether the DMA was in the control group or not. Next, I calculated of the mean revenue ratio of the control and treatment groups, and ran a bootstrap simulation of 10,000 to ensure the prediction of mean difference of revenue ratio between the control and treatment groups were accurate.
+
+Results: The mean revenue ratio was 0.8966 for the treatment group and 0.9489 for the control group. The bootstrap simulation estimated a 7.69% difference in revenue ratio between the control and treatment groups, with a 95% confidence interval of 1.4% and 9.06%.
+
+Conclusion: The data suggests that there is a significant difference in the revenue ration between the control and treatment groups. The Treatment group (0.8966) has a lower revenue ratio compared to the control group (0.9489), indicating that the paid advertising on Google is driving extra revenue for eBay. According to a bootstrap simulation, There is a 7.69% difference between the revenue ratio for control and treatment groups. This indicates that Google is a driving force for ebay's revenue.
